@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>館浜電鉄 各駅時刻表 | TRAIN CREW</title>
+<style>
+  :root {
+    --bg: #f5f7fa; --card: #fff; --border: #e1e4e8; --primary: #1a73e8;
+    --up: #d32f2f; --down: #1976d2; --text: #222; --muted: #666;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 16px; line-height: 1.5; }
+  h1 { font-size: 1.4rem; margin: 0 0 12px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+  select, button { font: inherit; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: #fff; cursor: pointer; }
+  button.up { background: var(--up); color: #fff; border-color: var(--up); }
+  button.down { background: var(--down); color: #fff; border-color: var(--down); }
+  .station-list { display: flex; flex-direction: column; gap: 6px; }
+  .station-btn { width: 100%; text-align: left; padding: 12px 16px; font-size: 1.05rem; background: #fff; border: 1px solid var(--border); border-radius: 8px; }
+  .station-btn:hover { background: #f8f9fa; }
+  .nav { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; align-items: center; }
+  .timetable { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .timetable th, .timetable td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; }
+  .timetable th { background: #f8f9fa; font-weight: 600; }
+  .timetable tr.train-row { cursor: pointer; }
+  .timetable tr.train-row:hover { background: #f0f7ff; }
+  .type-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; color: #fff; }
+  .detail-panel { margin-top: 16px; padding: 16px; background: #fafbfc; border-radius: 8px; border: 1px solid var(--border); }
+  .error { color: #d32f2f; padding: 12px; background: #ffebee; border-radius: 8px; }
+  .debug { background: #f0f4f8; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap; margin-top: 12px; max-height: 300px; overflow: auto; }
+  .muted { color: var(--muted); font-size: 0.9rem; }
+  .hidden { display: none !important; }
+  .flex { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pass-time { color: #999; }
+  .footnote { font-size: 0.75rem; font-weight: normal; color: #666; display: block; margin-top: 2px; }
+  .pass-note { font-size: 0.75rem; color: #999; margin-left: 4px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="flex" style="margin-bottom: 12px; justify-content: center;">
+    <img src="logo.png" alt="TRAIN CREW START YOUR TRAIN" style="max-width: 100%; height: auto; max-height: 120px;">
+  </div>
+  <div class="card">
+    <div style="text-align: center; padding: 24px;">
+      <a href="https://acty-soft.com/traincrew/index.html" target="_blank" rel="noopener noreferrer" style="font-size: 1.2rem; color: var(--primary); text-decoration: none; font-weight: 600;">館浜電鉄ホームページはこちら</a>
+    </div>
+  </div>
+  <div id="error" class="error hidden"></div>
+  <div id="debug" class="debug hidden"></div>
+  <div id="main" class="">
+    <div class="card">
+      <div class="flex">
+        <label>ダイヤ:</label>
+        <select id="diaSelect"><option value="0">本線</option></select>
+        <span id="rosenName" class="muted">（館浜電鉄）</span>
+      </div>
+    </div>
+    <div class="card" id="stationCard">
+      <h2 style="margin:0 0 12px; font-size:1.2rem;">駅一覧</h2>
+      <div id="stationList" class="station-list"><button class="station-btn">大路</button><button class="station-btn">新大路</button><button class="station-btn">桜坂</button><button class="station-btn">東井</button><button class="station-btn">白石町</button><button class="station-btn">二木戸</button><button class="station-btn">三石</button><button class="station-btn">名田</button><button class="station-btn">下吉沢</button><button class="station-btn">上吉沢</button><button class="station-btn">珠川温泉</button><button class="station-btn">珠川信号場</button><button class="station-btn">明神川</button><button class="station-btn">三郷</button><button class="station-btn">赤山町</button><button class="station-btn">西赤山</button><button class="station-btn">奥峯口</button><button class="station-btn">日野森</button><button class="station-btn">高見沢</button><button class="station-btn">水越</button><button class="station-btn">藤江</button><button class="station-btn">大道寺</button><button class="station-btn">江ノ原信号場</button><button class="station-btn">江ノ原検車区</button><button class="station-btn">江ノ原</button><button class="station-btn">新野崎</button><button class="station-btn">新井川</button><button class="station-btn">羽衣橋</button><button class="station-btn">浜園</button><button class="station-btn">津崎</button><button class="station-btn">虹ケ浜</button><button class="station-btn">海岸公園</button><button class="station-btn">河原崎</button><button class="station-btn">駒野</button><button class="station-btn">館浜</button></div>
+    </div>
+    <div id="stationView" class="card hidden">
+      <h2 id="stationTitle" style="margin:0 0 12px;"></h2>
+      <div class="nav">
+        <button class="up" id="btnUp">上り</button>
+        <button class="down" id="btnDown">下り</button>
+        <button id="btnBack">駅一覧へ戻る</button>
+      </div>
+      <div id="timetableWrap"></div>
+      <div id="detailPanel" class="detail-panel hidden"></div>
+    </div>
+  </div>
+</div>
+<script>
+const state = { data: null, currentDia: 0, currentStation: null, currentDir: null };
+const $ = id => document.getElementById(id);
+function showError(msg) { const el = $('error'); el.textContent = msg; el.classList.remove('hidden'); }
+function hideError() { $('error').classList.add('hidden'); }
+function showDebug(text) { const el = $('debug'); el.textContent = text; el.classList.remove('hidden'); }
+
+function parseOuDia(text) {
+  const lines = text.replace(/\r/g, '').split('\n');
+  const root = { stations: [], types: [], dias: [] };
+  let stack = [{ name: 'root', obj: root }];
+  let current = root;
+  let currentDia = null;
+  let isNobori = false;
+
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+
+    if (line.endsWith('.') && !line.includes('=')) {
+      const name = line.slice(0, -1);
+      if (name === '') {
+        if (stack.length > 1) {
+          stack.pop();
+          current = stack[stack.length - 1].obj;
+          if (stack[stack.length - 1].name === 'Dia') currentDia = current;
+          isNobori = stack[stack.length - 1].name === 'Nobori';
+        }
+      } else {
+        let newObj = {};
+        if (name === 'Eki') {
+          newObj = { name: '' };
+          root.stations.push(newObj);
+        } else if (name === 'Ressyasyubetsu') {
+          newObj = { name: '', color: '#666' };
+          root.types.push(newObj);
+        } else if (name === 'Dia') {
+          newObj = { name: '', kudari: [], nobori: [] };
+          root.dias.push(newObj);
+          currentDia = newObj;
+        } else if (name === 'Ressya') {
+          newObj = { type: 0, number: '', name: '', times: [], rawEki: '', isNobori, outerTerminal: '' };
+          const parentName = stack[stack.length - 1].name;
+          if (parentName === 'Kudari' && currentDia) currentDia.kudari.push(newObj);
+          else if (parentName === 'Nobori' && currentDia) currentDia.nobori.push(newObj);
+        } else if (name === 'Kudari') {
+          newObj = currentDia || {};
+          isNobori = false;
+        } else if (name === 'Nobori') {
+          newObj = currentDia || {};
+          isNobori = true;
+        } else {
+          newObj = {};
+        }
+        stack.push({ name, obj: newObj });
+        current = newObj;
+      }
+      continue;
+    }
+
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const key = line.slice(0, eq);
+    const val = line.slice(eq + 1);
+
+    if (key === 'Rosenmei') root.rosenmei = val;
+    else if (current) {
+      if (key === 'Ekimei') current.name = val;
+      else if (key === 'Syubetsumei') current.name = val;
+      else if (key === 'JikokuhyouMojiColor') current.color = parseColor(val);
+      else if (key === 'DiaName') current.name = val;
+      else if (key === 'Syubetsu') current.type = parseInt(val, 10) || 0;
+      else if (key === 'Ressyabangou') current.number = val;
+      else if (key === 'Ressyamei') current.name = val;
+      else if (key === 'OuterTerminalEkimei' || key === 'GaibuShuchakuEkimei' || key === 'OuterTerminal') {
+        current.outerTerminal = val;
+      }
+      else if (key === 'EkiJikoku') {
+        current.rawEki = val;
+        current.times = parseEkiJikoku(val, root.stations.length, current.isNobori);
+      }
+    }
+  }
+  return root;
+}
+
+function parseColor(s) {
+  if (!s) return '#666666';
+  s = s.trim().replace(/^0x/i, '');
+  if (/^[0-9A-Fa-f]{8}$/.test(s)) {
+    const bb = s.slice(2, 4);
+    const gg = s.slice(4, 6);
+    const rr = s.slice(6, 8);
+    return '#' + rr + gg + bb;
+  }
+  if (/^[0-9A-Fa-f]{6}$/.test(s)) {
+    const bb = s.slice(0, 2);
+    const gg = s.slice(2, 4);
+    const rr = s.slice(4, 6);
+    return '#' + rr + gg + bb;
+  }
+  const m = s.match(/(\d+)/g);
+  if (m && m.length >= 3) {
+    const r = Math.min(255, +m[0]);
+    const g = Math.min(255, +m[1]);
+    const b = Math.min(255, +m[2]);
+    return '#' + [r,g,b].map(x => x.toString(16).padStart(2,'0')).join('').toUpperCase();
+  }
+  return '#666666';
+}
+
+function parseEkiJikoku(str, stationCount, reverse = false) {
+  if (!str) return [];
+  const parts = str.split(',');
+  const result = [];
+
+  parts.forEach((part, i) => {
+    if (!part || i >= stationCount) return;
+
+    let mode = 0;
+    let timePart = part;
+
+    const dollar = part.indexOf('$');
+    if (dollar !== -1) timePart = part.slice(0, dollar);
+
+    const semi = timePart.indexOf(';');
+    if (semi !== -1) {
+      const first = parseInt(timePart.slice(0, semi), 10);
+      if (!isNaN(first) && first >= 0 && first <= 2) mode = first;
+      timePart = timePart.slice(semi + 1);
+    } else {
+      const m = timePart.match(/^(\d)/);
+      if (m) mode = parseInt(m[1], 10);
+      timePart = '';
+    }
+
+    let arr = '', dep = '';
+    if (timePart.includes('/')) {
+      const [a, d] = timePart.split('/');
+      arr = normalizeTime(a);
+      dep = normalizeTime(d);
+    } else if (timePart) {
+      dep = normalizeTime(timePart);
+      arr = dep;
+    }
+
+    const stationIdx = reverse ? (stationCount - 1 - i) : i;
+
+    if (arr || dep || mode !== 0) {
+      result.push({ station: stationIdx, arr, dep, mode });
+    }
+  });
+  return result;
+}
+
+function normalizeTime(t) {
+  if (!t) return '';
+  t = String(t).replace(/[^0-9]/g, '');
+  if (!t) return '';
+  if (t.length === 5) t = '0' + t;
+  if (t.length === 3) t = '0' + t;
+  if (t.length === 4) return t.slice(0, 2) + ':' + t.slice(2);
+  if (t.length >= 6) {
+    return t.slice(0, 2) + ':' + t.slice(2, 4) + ':' + t.slice(4, 6);
+  }
+  return t;
+}
+function formatTime(t) { return t || '–'; }
+
+function formatTimeNoSec(t) {
+  if (!t) return '–';
+  const parts = t.split(':');
+  if (parts.length >= 2) return parts[0] + ':' + parts[1];
+  return t;
+}
+
+function getTypeInfo(typeIdx, types) {
+  const t = types[typeIdx];
+  if (t && t.name) return { name: t.name, color: t.color || '#666666' };
+  return { name: `種別${typeIdx}`, color: '#666666' };
+}
+
+function renderMain() {
+  const d = state.data;
+  $('rosenName').textContent = d.rosenmei ? '（' + d.rosenmei + '）' : '';
+  const sel = $('diaSelect');
+  sel.innerHTML = '';
+  d.dias.forEach((dia, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = dia.name || `ダイヤ${i+1}`;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => { state.currentDia = parseInt(sel.value); renderStations(); };
+  state.currentDia = 0;
+  renderStations();
+}
+
+function renderStations() {
+  const list = $('stationList');
+  list.innerHTML = '';
+  state.data.stations.forEach((st, realIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'station-btn';
+    btn.textContent = st.name || `駅${realIdx+1}`;
+    btn.onclick = () => showStation(realIdx);
+    list.appendChild(btn);
+  });
+  $('stationView').classList.add('hidden');
+  $('stationCard').classList.remove('hidden');
+}
+
+function showStation(idx) {
+  state.currentStation = idx;
+  const st = state.data.stations[idx];
+  $('stationTitle').textContent = st.name + '駅';
+  $('stationView').classList.remove('hidden');
+  $('stationCard').classList.add('hidden');
+  $('timetableWrap').innerHTML = '';
+  $('detailPanel').classList.add('hidden');
+  const upTerm = state.data.stations[0].name;
+  const downTerm = state.data.stations[state.data.stations.length - 1].name;
+  $('btnUp').textContent = `上り（${upTerm}方面）`;
+  $('btnDown').textContent = `下り（${downTerm}方面）`;
+}
+$('btnUp').onclick = () => showTimetable('up');
+$('btnDown').onclick = () => showTimetable('down');
+$('btnBack').onclick = () => {
+  $('stationView').classList.add('hidden');
+  $('stationCard').classList.remove('hidden');
+  $('detailPanel').classList.add('hidden');
+};
+
+function showTimetable(dir) {
+  state.currentDir = dir;
+  const dia = state.data.dias[state.currentDia];
+  const trains = dir === 'up' ? dia.nobori : dia.kudari;
+  const stationIdx = state.currentStation;
+  const types = state.data.types;
+
+  const rows = trains.map(t => {
+    const stop = t.times.find(x => x.station === stationIdx);
+    if (!stop) return null;
+    const time = stop.dep || stop.arr;
+    if (!time) return null;
+
+    const withTime = t.times.filter(x => x.arr || x.dep);
+    if (withTime.length) {
+      const minIdx = Math.min(...withTime.map(x => x.station));
+      const maxIdx = Math.max(...withTime.map(x => x.station));
+      if (dir === 'down' && maxIdx === stationIdx) return null;
+      if (dir === 'up' && minIdx === stationIdx) return null;
+    }
+
+    return { train: t, time, stop };
+  }).filter(Boolean).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  let html = `<h3 style="margin:0 0 8px;">${dir === 'up' ? '上り' : '下り'} 時刻表</h3>`;
+  if (!rows.length) {
+    html += '<p class="muted">この駅を通る停車列車はありません</p>';
+  } else {
+    html += `<table class="timetable"><thead><tr><th>時刻</th><th>種別<span class="footnote">☆は実装済み。</span></th><th>列車番号</th><th>列車名</th><th>行先</th></tr></thead><tbody>`;
+    rows.forEach((r, i) => {
+      const t = r.train;
+      const typeInfo = getTypeInfo(t.type, types);
+      const dest = getDestination(t, dir);
+      const passNote = r.stop.mode === 2 ? '<span class="pass-note">（通過）</span>' : '';
+      html += `<tr class="train-row" data-idx="${i}"><td><strong>${formatTimeNoSec(r.time)}</strong></td><td><span class="type-badge" style="background:${typeInfo.color}">${typeInfo.name}</span>${passNote}</td><td>${t.number || '–'}</td><td>${t.name || '–'}</td><td>${dest}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  $('timetableWrap').innerHTML = html;
+  $('detailPanel').classList.add('hidden');
+  document.querySelectorAll('.train-row').forEach(tr => {
+    tr.onclick = () => showTrainDetail(rows[parseInt(tr.dataset.idx)].train, dir);
+  });
+}
+
+function getDestination(train, dir) {
+  const stations = state.data.stations;
+  if (dir === 'up' && train.outerTerminal) {
+    return train.outerTerminal;
+  }
+  const stops = train.times.filter(t => t.arr || t.dep).sort((a,b) => a.station - b.station);
+  if (!stops.length) return '–';
+  if (dir === 'down') return stations[stops[stops.length - 1].station]?.name || '–';
+  return stations[stops[0].station]?.name || '–';
+}
+
+function showTrainDetail(train, dir) {
+  const stations = state.data.stations;
+  const types = state.data.types;
+  const typeInfo = getTypeInfo(train.type, types);
+  const dest = getDestination(train, dir);
+
+  const withTime = train.times.filter(t => t.arr || t.dep);
+  let minIdx = 0, maxIdx = stations.length - 1;
+  if (withTime.length) {
+    minIdx = Math.min(...withTime.map(t => t.station));
+    maxIdx = Math.max(...withTime.map(t => t.station));
+  }
+
+  let html = `<h3 style="margin:0 0 8px;"><span class="type-badge" style="background:${typeInfo.color}">${typeInfo.name}</span> ${train.number || ''} ${train.name || ''}　行先: ${dest}</h3>`;
+  html += '<table class="timetable"><thead><tr><th>駅</th><th>着</th><th>発</th></tr></thead><tbody>';
+
+  let indices = [];
+  for (let i = minIdx; i <= maxIdx; i++) indices.push(i);
+
+  if (dir === 'up') indices.reverse();
+
+  indices.forEach(idx => {
+    const st = stations[idx];
+    const stop = train.times.find(t => t.station === idx);
+    let arr = '–', dep = '–';
+    let arrClass = '', depClass = '';
+    if (stop) {
+      const isPass = stop.mode === 2;
+      arr = formatTime(stop.arr);
+      dep = formatTime(stop.dep);
+      if (isPass) {
+        if (arr === '–' && dep === '–') {
+          arr = '通過';
+          dep = '通過';
+        } else {
+          if (arr !== '–') arr += ' (通過)';
+          if (dep !== '–') dep += ' (通過)';
+        }
+        arrClass = depClass = 'pass-time';
+      }
+    }
+    const isCurrent = idx === state.currentStation;
+    html += `<tr ${isCurrent ? 'style="background:#fff3e0"' : ''}><td>${st.name}</td><td class="${arrClass}">${arr}</td><td class="${depClass}">${dep}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  $('detailPanel').innerHTML = html;
+  $('detailPanel').classList.remove('hidden');
+  $('detailPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+</script>
+
+</body></html>
