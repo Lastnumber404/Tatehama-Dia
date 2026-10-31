@@ -63,10 +63,10 @@
       <div id="stationList" class="station-list"></div>
     </div>
     <div id="stationView" class="card hidden">
-      <h2 id="stationTitle" style="margin:0 0 12px;">駒野駅</h2>
+      <h2 id="stationTitle" style="margin:0 0 12px;"></h2>
       <div class="nav">
-        <button class="up" id="btnUp">上り（大路方面）</button>
-        <button class="down" id="btnDown">下り（館浜方面）</button>
+        <button class="up" id="btnUp">上り</button>
+        <button class="down" id="btnDown">下り</button>
         <button id="btnBack">駅一覧へ戻る</button>
       </div>
       <div id="timetableWrap"></div>
@@ -522,7 +522,8 @@ function showTrainDetail(train, dir) {
       const isPass = stop.mode === 2;
       // 発時刻はあるが着時刻がない場合は着を非表示
       const hasArr = stop.arr && stop.arr !== '';
-      arr = (isOrigin || !hasArr) ? '–' : formatTime(stop.arr);
+      const sameTime = hasArr && stop.arr === stop.dep;
+      arr = (isOrigin || !hasArr || sameTime) ? '–' : formatTime(stop.arr);
       dep = formatTime(stop.dep);
       if (isPass) {
         if (arr === '–' && dep === '–') {
@@ -575,7 +576,8 @@ function showTrainDetail(train, dir) {
       if (stop) {
         const isPass = stop.mode === 2;
         const hasArr = stop.arr && stop.arr !== '';
-        arr = hasArr ? formatTime(stop.arr) : '–';
+        const sameTime = hasArr && stop.arr === stop.dep;
+        arr = (hasArr && !sameTime) ? formatTime(stop.arr) : '–';
         dep = formatTime(stop.dep);
         if (isPass) {
           if (arr === '–' && dep === '–') {
